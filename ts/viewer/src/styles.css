@@ -93,6 +93,7 @@ h3 { font-size: 14px; margin: 20px 0 8px; }
 .badge.modified { color: var(--modified); }
 .badge.improved { color: var(--improved); }
 .badge.unchanged, .badge.maintained, .badge.unresolved { color: var(--muted); }
+.badge.borderline { color: var(--modified); margin-left: 4px; border-style: dashed; }
 
 .detail { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px; min-width: 0; }
 .detail-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 12px; }

@@ -12,8 +12,17 @@ import {
 
 export const EVALUATION_SCHEMA_VERSION = '1.0'
 
-export type EvaluateOptions = { iou_threshold: number; allow_inference_mismatch: boolean }
-export const DEFAULT_EVALUATE_OPTIONS: EvaluateOptions = { iou_threshold: 0.5, allow_inference_mismatch: false }
+export type EvaluateOptions = {
+  iou_threshold: number
+  // 回帰・改善のうち、PASS/FAIL を分けた IoU が閾値からこの幅以内のものを borderline にする
+  borderline_margin: number
+  allow_inference_mismatch: boolean
+}
+export const DEFAULT_EVALUATE_OPTIONS: EvaluateOptions = {
+  iou_threshold: 0.5,
+  borderline_margin: 0.05,
+  allow_inference_mismatch: false,
+}
 
 type ModelInput = { model_id: string; inference: InferenceResult['inference'] }
 
@@ -57,13 +66,16 @@ const TRANSITIONS: Record<`${Status}->${Status}`, Transition> = {
   'FAIL->FAIL': 'unresolved',
 }
 
-type ModelVerdict = { status: Status; detection: Detection | null }
+// iou は、PASS なら割り当てた検出の IoU、FAIL なら同じクラスの検出のうち最大の IoU（検出が無ければ null）
+type ModelVerdict = { status: Status; detection: Detection | null; iou: number | null }
 
 export type ObjectEvaluation = {
   ground_truth: AnnotatedObject
   before: ModelVerdict
   after: ModelVerdict
   transition: Transition
+  // 閾値ぎりぎりで PASS/FAIL が分かれた回帰・改善。正解の枠の付け方や IoU の閾値しだいで判定が変わりうる
+  borderline: boolean
 }
 
 export type FrameEvaluation = {
@@ -84,6 +96,8 @@ export type Evaluation = {
     annotated_frames: number
     unannotated_frames: number
     objects: number
+    regressed_borderline: number
+    improved_borderline: number
   } & Record<Transition, number> & { before: ModelScore; after: ModelScore }
   frames: FrameEvaluation[]
 }
@@ -96,10 +110,16 @@ export type EvaluateError =
 
 export type EvaluateOutcome = { ok: true; evaluation: Evaluation } | { ok: false; error: EvaluateError }
 
-const verdict = (detection: Detection | null): ModelVerdict => ({
-  status: detection === null ? 'FAIL' : 'PASS',
-  detection,
-})
+const verdict = (gt: AnnotatedObject, matched: Detection | null, detections: readonly Detection[]): ModelVerdict => {
+  if (matched !== null) return { status: 'PASS', detection: matched, iou: iou(matched.bbox, gt.bbox) }
+  const ious = detections.filter((d) => d.class_name === gt.class_name).map((d) => iou(d.bbox, gt.bbox))
+  return { status: 'FAIL', detection: null, iou: ious.length === 0 ? null : Math.max(...ious) }
+}
+
+const isBorderline = (before: ModelVerdict, after: ModelVerdict, t: Transition, o: EvaluateOptions): boolean => {
+  const near = (v: number | null) => v !== null && Math.abs(v - o.iou_threshold) <= o.borderline_margin
+  return (t === 'regressed' || t === 'improved') && (near(before.iou) || near(after.iou))
+}
 
 const evaluateFrame = (
   frameIndex: number,
@@ -113,9 +133,10 @@ const evaluateFrame = (
   return {
     frame_index: frameIndex,
     objects: b.groundTruth.map((gt, i) => {
-      const before = verdict(b.matches[i] ?? null)
-      const after = verdict(a.matches[i] ?? null)
-      return { ground_truth: gt, before, after, transition: TRANSITIONS[`${before.status}->${after.status}`] }
+      const before = verdict(gt, b.matches[i] ?? null, beforeDets)
+      const after = verdict(gt, a.matches[i] ?? null, afterDets)
+      const transition = TRANSITIONS[`${before.status}->${after.status}`]
+      return { ground_truth: gt, before, after, transition, borderline: isBorderline(before, after, transition, o) }
     }),
     false_positives: { before: b.falsePositives, after: a.falsePositives },
   }
@@ -216,6 +237,8 @@ export const evaluateResults = (
         improved: countOf('improved'),
         regressed: countOf('regressed'),
         unresolved: countOf('unresolved'),
+        regressed_borderline: objects.filter((x) => x.transition === 'regressed' && x.borderline).length,
+        improved_borderline: objects.filter((x) => x.transition === 'improved' && x.borderline).length,
         before: score(frames, 'before'),
         after: score(frames, 'after'),
       },

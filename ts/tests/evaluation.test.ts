@@ -131,6 +131,38 @@ describe('evaluateResults: before/after の遷移', () => {
   })
 })
 
+describe('evaluateResults: 閾値ぎりぎりの判定', () => {
+  // 正解 [0,0,100,100] に対し、幅を変えて IoU を作る（[0,0,w,100] の IoU は w/100）
+  const gt100 = makeAnnotations({ frames: [{ frame_index: 0, objects: [{ class_name: 'bottle', bbox: [0, 0, 100, 100] }] }] })
+  const withIou = (v: number) => det([0, 0, v * 100, 100], 0.9)
+
+  it('PASS/FAIL の分かれ目が閾値から margin 以内なら borderline にする', () => {
+    const e = evaluate([withIou(0.52)], [withIou(0.49)], gt100)
+    const o = e.frames[0]?.objects[0]
+    expect(o?.transition).toBe('regressed')
+    expect(o?.borderline).toBe(true)
+    expect(o?.before.iou).toBeCloseTo(0.52, 12)
+    expect(o?.after.iou).toBeCloseTo(0.49, 12)
+    expect(e.summary).toMatchObject({ regressed: 1, regressed_borderline: 1 })
+  })
+
+  it('閾値から離れた回帰は borderline にしない', () => {
+    const e = evaluate([withIou(0.9)], [withIou(0.2)], gt100)
+    expect(e.frames[0]?.objects[0]?.borderline).toBe(false)
+    expect(e.summary).toMatchObject({ regressed: 1, regressed_borderline: 0 })
+  })
+
+  it('FAIL の側に同じクラスの検出が無ければ iou は null', () => {
+    const e = evaluate([withIou(0.9)], [], gt100)
+    expect(e.frames[0]?.objects[0]?.after.iou).toBeNull()
+  })
+
+  it('維持や未改善は borderline にしない', () => {
+    const e = evaluate([withIou(0.52)], [withIou(0.53)], gt100)
+    expect(e.frames[0]?.objects[0]).toMatchObject({ transition: 'maintained', borderline: false })
+  })
+})
+
 describe('evaluateResults: 評価するクラスの指定', () => {
   const person = det([600, 300, 640, 420], 0.9, 'person', 0)
 

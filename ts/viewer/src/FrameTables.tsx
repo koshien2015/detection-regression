@@ -1,4 +1,5 @@
 import type { MatchedEntry } from '../../src/compare.js'
+import type { ObjectEvaluation } from '../../src/evaluation.js'
 import type { ReportFrame } from '../../src/report.js'
 import type { Detection } from '../../src/schema.js'
 import { formatSigned, STATUS_LABELS } from './model.js'
@@ -30,6 +31,9 @@ const singleRow = (d: Detection, status: 'appeared' | 'disappeared', i: number) 
     <td>{bboxText(d)}</td>
   </tr>
 )
+
+const verdictText = (v: ObjectEvaluation['before']) =>
+  `${v.status}${v.detection ? ` ${v.detection.confidence.toFixed(2)}` : ''}${v.iou === null ? '' : `（IoU ${v.iou.toFixed(3)}）`}`
 
 export const FrameTables = ({ frame }: { frame: ReportFrame }) => {
   const { diff, evaluation } = frame
@@ -66,10 +70,13 @@ export const FrameTables = ({ frame }: { frame: ReportFrame }) => {
               <tbody>
                 {evaluation.objects.map((o, i) => (
                   <tr key={i}>
-                    <td><span className={`badge ${o.transition}`}>{STATUS_LABELS[o.transition]}</span></td>
+                    <td>
+                      <span className={`badge ${o.transition}`}>{STATUS_LABELS[o.transition]}</span>
+                      {o.borderline && <span className="badge borderline" title="IoU が閾値ぎりぎりで判定が分かれた">境界</span>}
+                    </td>
                     <td>{o.ground_truth.class_name}（{bboxText(o.ground_truth)}）</td>
-                    <td>{o.before.status}{o.before.detection && ` ${o.before.detection.confidence.toFixed(2)}`}</td>
-                    <td>{o.after.status}{o.after.detection && ` ${o.after.detection.confidence.toFixed(2)}`}</td>
+                    <td>{verdictText(o.before)}</td>
+                    <td>{verdictText(o.after)}</td>
                   </tr>
                 ))}
               </tbody>
