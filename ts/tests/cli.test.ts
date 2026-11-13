@@ -24,7 +24,7 @@ describe('compare コマンド', () => {
 
     const diff = JSON.parse(readFileSync(output, 'utf8')) as Diff
     // frame 0: confidence +0.01 で許容幅以内 / frame 1: bottle が消失
-    // frame 2: person が右へ20px 移動（IoU 0.82）/ frame 3: bottle が出現
+    // frame 2: person の幅が 200px→260px に広がった（IoU 0.77）/ frame 3: bottle が出現
     expect(diff.summary).toEqual({
       frames_total: 4,
       frames_with_changes: 3,
@@ -35,7 +35,7 @@ describe('compare コマンド', () => {
       class_change_candidates: 0,
     })
     expect(diff.frames.map((f) => f.has_changes)).toEqual([false, true, true, true])
-    expect(diff.frames[2]?.modified[0]?.changed).toEqual(['iou', 'center'])
+    expect(diff.frames[2]?.modified[0]?.changed).toEqual(['iou', 'size'])
   })
 
   it('同じファイル同士なら差分ゼロ', () => {
@@ -48,7 +48,7 @@ describe('compare コマンド', () => {
   it('設定ファイルの許容幅を使う', () => {
     const dir = mkdtempSync(join(tmpdir(), 'dr-'))
     const config = join(dir, 'config.json')
-    writeFileSync(config, JSON.stringify({ center_shift_tolerance_px: 50, iou_tolerance: 0.5 }))
+    writeFileSync(config, JSON.stringify({ size_change_tolerance_ratio: 0.5, iou_tolerance: 0.5 }))
     const output = join(dir, 'diff.json')
     run(['compare', '--before', fixture('before.json'), '--after', fixture('after.json'), '--output', output, '--config', config])
     const diff = JSON.parse(readFileSync(output, 'utf8')) as Diff

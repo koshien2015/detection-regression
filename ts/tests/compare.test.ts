@@ -38,25 +38,41 @@ describe('compareResults: 差分の分類', () => {
     expect(diffOf(shuffledBefore, shuffledAfter)).toEqual(diffOf(before, after))
   })
 
-  it('Confidence だけが許容幅を超えて変化したら modified（confidence）', () => {
+  it('confidence は既定では変化に数えないが、差は記録する', () => {
     const diff = single([det([0, 0, 100, 100], 0.9)], [det([0, 0, 100, 100], 0.6)])
+    expect(diff.options.confidence_tolerance).toBeNull()
+    expect(diff.frames[0]?.modified).toEqual([])
+    expect(diff.frames[0]?.unchanged[0]?.metrics.confidence_delta).toBeCloseTo(-0.3, 12)
+  })
+
+  it('confidence_tolerance を指定すれば、それを超えた confidence の変化を modified にする', () => {
+    const diff = diffOf(
+      makeResult({ frames: [frame(0, [det([0, 0, 100, 100], 0.9)])] }),
+      makeResult({ frames: [frame(0, [det([0, 0, 100, 100], 0.6)])] }),
+      { confidence_tolerance: 0.05 },
+    )
     const entry = diff.frames[0]?.modified[0]
     expect(entry?.changed).toEqual(['confidence'])
     expect(entry?.metrics.confidence_delta).toBeCloseTo(-0.3, 12)
     expect(diff.summary.modified).toBe(1)
   })
 
-  it('Confidence の変化が許容幅以内なら unchanged', () => {
-    const diff = single([det([0, 0, 100, 100], 0.9)], [det([0, 0, 100, 100], 0.86)])
+  it('confidence の変化が許容幅以内なら unchanged', () => {
+    const diff = diffOf(
+      makeResult({ frames: [frame(0, [det([0, 0, 100, 100], 0.9)])] }),
+      makeResult({ frames: [frame(0, [det([0, 0, 100, 100], 0.86)])] }),
+      { confidence_tolerance: 0.05 },
+    )
     expect(diff.frames[0]?.unchanged).toHaveLength(1)
     expect(diff.frames[0]?.has_changes).toBe(false)
   })
 
   it('BBox だけが移動したら modified（iou・center）で、大きさは変わらない', () => {
-    const diff = single([det([0, 0, 100, 100])], [det([10, 0, 110, 100])])
+    const diff = single([det([0, 0, 100, 100])], [det([20, 0, 120, 100])])
     const entry = diff.frames[0]?.modified[0]
     expect(entry?.changed).toEqual(['iou', 'center'])
-    expect(entry?.metrics.center_shift_px).toBeCloseTo(10, 12)
+    expect(entry?.metrics.center_shift_px).toBeCloseTo(20, 12)
+    expect(entry?.metrics.center_shift_ratio).toBeCloseTo(20 / Math.hypot(100, 100), 12)
     expect(entry?.metrics.width_delta_px).toBe(0)
   })
 
@@ -90,12 +106,19 @@ describe('compareResults: 差分の分類', () => {
     expect(diff.frames[0]).toMatchObject({ has_changes: false, unchanged: [], appeared: [], disappeared: [] })
   })
 
+  it('中心の移動は BBox の対角線に対する割合で判定する（小さい物体ほど少しの移動で変化になる）', () => {
+    const small = single([det([0, 0, 20, 20])], [det([3, 0, 23, 20])])
+    const large = single([det([0, 0, 400, 400])], [det([3, 0, 403, 400])])
+    expect(small.frames[0]?.modified[0]?.changed).toContain('center')
+    expect(large.frames[0]?.unchanged).toHaveLength(1)
+  })
+
   it('許容幅を変えると判定が変わり、使った設定を出力に残す', () => {
-    const before = makeResult({ frames: [frame(0, [det([0, 0, 100, 100], 0.9)])] })
-    const after = makeResult({ frames: [frame(0, [det([0, 0, 100, 100], 0.6)])] })
-    const diff = diffOf(before, after, { confidence_tolerance: 0.5 })
+    const before = makeResult({ frames: [frame(0, [det([0, 0, 100, 100])])] })
+    const after = makeResult({ frames: [frame(0, [det([20, 0, 120, 100])])] })
+    const diff = diffOf(before, after, { iou_tolerance: 0.5, center_shift_tolerance_ratio: 0.5 })
     expect(diff.summary.modified).toBe(0)
-    expect(diff.options).toEqual({ ...DEFAULT_COMPARE_OPTIONS, confidence_tolerance: 0.5 })
+    expect(diff.options).toEqual({ ...DEFAULT_COMPARE_OPTIONS, iou_tolerance: 0.5, center_shift_tolerance_ratio: 0.5 })
   })
 
   it('undefined の設定項目は既定値を上書きしない', () => {

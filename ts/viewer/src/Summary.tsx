@@ -32,7 +32,7 @@ export const Summary = ({ data }: { data: ReportData }) => {
         <div>
           <dt>比較の設定</dt>
           <dd>
-            対応づけ IoU ≥ {data.options.match_iou_threshold}・confidence ±{data.options.confidence_tolerance}・IoU &lt; {data.options.iou_tolerance}・中心 {data.options.center_shift_tolerance_px}px・大きさ {data.options.size_change_tolerance_ratio * 100}%
+            対応づけ IoU ≥ {data.options.match_iou_threshold}・変化とみなす量: IoU &lt; {data.options.iou_tolerance}・中心の移動 &gt; 対角線の {data.options.center_shift_tolerance_ratio * 100}%・大きさ &gt; {data.options.size_change_tolerance_ratio * 100}%・confidence {data.options.confidence_tolerance === null ? '数えない' : `±${data.options.confidence_tolerance}`}
           </dd>
         </div>
       </dl>

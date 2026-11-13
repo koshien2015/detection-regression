@@ -22,9 +22,9 @@ const USAGE = `使い方:
 const ConfigSchema = z
   .strictObject({
     match_iou_threshold: z.number().min(0).max(1),
-    confidence_tolerance: z.number().min(0).max(1),
+    confidence_tolerance: z.number().min(0).max(1).nullable(),
     iou_tolerance: z.number().min(0).max(1),
-    center_shift_tolerance_px: z.number().nonnegative(),
+    center_shift_tolerance_ratio: z.number().nonnegative(),
     size_change_tolerance_ratio: z.number().nonnegative(),
     allow_inference_mismatch: z.boolean(),
   })

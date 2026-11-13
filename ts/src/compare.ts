@@ -13,9 +13,11 @@ export type CompareOptions = {
   // before と after の検出を同じ物体とみなす最小の IoU
   match_iou_threshold: number
   // 対応づけた検出について、これを超えたら変化とみなす量
-  confidence_tolerance: number
+  // null は confidence の差を変化に数えない（差は metrics に記録する）。モデルが変わると confidence は動くのが普通なため
+  confidence_tolerance: number | null
   iou_tolerance: number // IoU がこれ未満なら変化
-  center_shift_tolerance_px: number
+  // 中心の移動量 / before の BBox の対角線。px で決めると解像度や物体の大きさで意味が変わるため割合にする
+  center_shift_tolerance_ratio: number
   size_change_tolerance_ratio: number // 幅・高さの変化量 / before の幅・高さ
   allow_inference_mismatch: boolean
 }
@@ -30,10 +32,10 @@ const resolveOptions = (input: CompareOptionsInput): CompareOptions => ({
 
 export const DEFAULT_COMPARE_OPTIONS: CompareOptions = {
   match_iou_threshold: 0.5,
-  confidence_tolerance: 0.05,
-  iou_tolerance: 0.95,
-  center_shift_tolerance_px: 4,
-  size_change_tolerance_ratio: 0.05,
+  confidence_tolerance: null,
+  iou_tolerance: 0.8,
+  center_shift_tolerance_ratio: 0.1,
+  size_change_tolerance_ratio: 0.15,
   allow_inference_mismatch: false,
 }
 
@@ -46,6 +48,7 @@ export type MatchMetrics = {
   iou: number
   confidence_delta: number
   center_shift_px: number
+  center_shift_ratio: number // center_shift_px / before の BBox の対角線
   width_delta_px: number
   height_delta_px: number
 }
@@ -109,6 +112,7 @@ const metricsOf = (pair: Pair<Detection, Detection>): MatchMetrics => {
     iou: pair.iou,
     confidence_delta: pair.after.confidence - pair.before.confidence,
     center_shift_px: Math.hypot(ax - bx, ay - by),
+    center_shift_ratio: Math.hypot(ax - bx, ay - by) / Math.max(Math.hypot(width(pair.before.bbox), height(pair.before.bbox)), 1),
     width_delta_px: width(pair.after.bbox) - width(pair.before.bbox),
     height_delta_px: height(pair.after.bbox) - height(pair.before.bbox),
   }
@@ -120,9 +124,9 @@ const changesOf = (m: MatchMetrics, before: Detection, o: CompareOptions): Chang
   const sizeTolW = o.size_change_tolerance_ratio * Math.max(width(before.bbox), 1)
   const sizeTolH = o.size_change_tolerance_ratio * Math.max(height(before.bbox), 1)
   const checks: [ChangeKind, boolean][] = [
-    ['confidence', exceeds(Math.abs(m.confidence_delta), o.confidence_tolerance)],
+    ['confidence', o.confidence_tolerance !== null && exceeds(Math.abs(m.confidence_delta), o.confidence_tolerance)],
     ['iou', m.iou < o.iou_tolerance - EPSILON],
-    ['center', exceeds(m.center_shift_px, o.center_shift_tolerance_px)],
+    ['center', exceeds(m.center_shift_ratio, o.center_shift_tolerance_ratio)],
     ['size', exceeds(Math.abs(m.width_delta_px), sizeTolW) || exceeds(Math.abs(m.height_delta_px), sizeTolH)],
   ]
   return checks.filter(([, changed]) => changed).map(([kind]) => kind)

@@ -20,10 +20,16 @@
 
 | 項目 | 既定の許容幅 |
 |---|---|
-| confidence | 差の絶対値 0.05 |
-| iou | 0.95 未満 |
-| center | 中心の移動 4px |
-| size | 幅か高さの変化が before の 5% |
+| iou | 0.8 未満 |
+| center | 中心の移動が before の BBox の対角線の 10% |
+| size | 幅か高さの変化が before の 15% |
+| confidence | 既定では数えない（`confidence_tolerance: null`） |
+
+当初は confidence 0.05・IoU 0.95・中心 4px・大きさ 5% にしていたが、yolo26n と yolo26s の比較で、対応づけた検出の 6 割近くが modified になった。キャップ検出モデルの学習段階どうしの比較では、unchanged がほぼ 0 件だった。差分が揺れに埋もれて、読み手が本当の変化を探せないため、緩めた。
+
+中心の移動を px でなく対角線に対する割合にしたのは、px では動画の解像度や物体の大きさで意味が変わるため。34×20px のキャップと 800×500px のバスに、同じ 10px を当てるのは不自然になる。
+
+confidence を既定で数えないのは、モデルが変わると confidence はほぼ必ず動くため。差の値は `metrics.confidence_delta` に残すので、confidence の低下を調べたいときは `confidence_tolerance` に数値を指定する。
 
 境界の値は浮動小数点の誤差を考慮して 1e-9 の余裕を持たせる。
 

@@ -130,10 +130,10 @@ uv run --project python python examples/bus/make_sample.py \
 | 設定の項目 | 既定値 | 意味 |
 |---|---|---|
 | `match_iou_threshold` | 0.5 | 同じ物体とみなす最小の IoU |
-| `confidence_tolerance` | 0.05 | confidence の差がこれを超えたら変化 |
-| `iou_tolerance` | 0.95 | before と after の BBox の IoU がこれ未満なら変化 |
-| `center_shift_tolerance_px` | 4 | BBox の中心の移動がこれを超えたら変化 |
-| `size_change_tolerance_ratio` | 0.05 | 幅か高さの変化が before の 5% を超えたら変化 |
+| `iou_tolerance` | 0.8 | before と after の BBox の IoU がこれ未満なら変化 |
+| `center_shift_tolerance_ratio` | 0.1 | BBox の中心の移動が before の BBox の対角線の 10% を超えたら変化 |
+| `size_change_tolerance_ratio` | 0.15 | 幅か高さの変化が before の 15% を超えたら変化 |
+| `confidence_tolerance` | null | null なら confidence の差を変化に数えない。数値（例 0.1）を指定すると、差がそれを超えたら変化 |
 | `allow_inference_mismatch` | false | 推論条件（conf・iou・imgsz）が違う結果の比較を、警告付きで許す |
 
 差分があること自体は、改善とも悪化とも判定しません。
@@ -165,7 +165,8 @@ PASS / FAIL は正解の物体ごとに決めます。正解の無い検出（FP
 - 同じ動画を同じ条件で推論した結果だけを比べます。fps の違う動画どうしの時刻合わせや、別の動画のフレームの対応づけはしません。
 - 対応づけは IoU による貪欲法です。物体が密集していると、IoU の合計が最大にならない組を選ぶことがあります。位置が大きく変わった検出は、同じ物体でも disappeared と appeared になります。
 - フレームをまたいだ追跡はしません。検出は各フレームで独立に比べます。
-- 許容幅の既定値は人工データで決めた値です。モデルの入力サイズを変えるだけで、対応づけた検出の大半が modified になることを確かめています。実際の比較では、目的に合わせて設定ファイルで調整してください。
+- 許容幅の既定値は、COCO の学習済みモデル（yolo26n と yolo26s）と、小さい物体（キャップ）の検出モデルの比較を見て決めた値です。対象や目的に合わせて、設定ファイルで調整してください。
+- confidence の差は、既定では変化に数えません。モデルが変わると confidence はほぼ必ず動くため、数えると差分のほとんどが confidence の揺れになるためです。差の値は `metrics.confidence_delta` に記録し、レポートにも表示します。
 - フィールドをまたぐ制約（`x1 <= x2`、`frame_index` の重複、BBox が画面の内側か、`class_id` と `class_name` の対応）は、生成した JSON Schema には含まれません。`compare` と `evaluate` が読み込むときに検査します。
 
 ## 開発
