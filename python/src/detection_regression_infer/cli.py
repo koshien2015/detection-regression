@@ -8,7 +8,7 @@ from pathlib import Path
 
 from .adapters.ultralytics import infer_video, load_model
 from .frames import extract_frames, select_frames
-from .labeling import import_yolo, prepare_labeling
+from .labeling import import_labelme, import_yolo, prepare_labeling
 from .video import sha256_file
 
 # ts/src/compare.ts の DIFF_SCHEMA_VERSION と合わせる
@@ -46,12 +46,16 @@ def _parser() -> argparse.ArgumentParser:
     prep.add_argument("--classes", type=_name_list, required=True, help="正解を付けるクラス（カンマ区切り）")
     prep.add_argument("--output", type=Path, required=True)
 
-    imp = commands.add_parser("import-yolo", help="YOLO 形式のラベルを正解アノテーションの JSON にする")
-    imp.add_argument("--video", type=Path, required=True)
-    imp.add_argument("--labeling-dir", type=Path, required=True, help="prepare-labeling の出力先（manifest.json がある）")
-    imp.add_argument("--labels", type=Path, required=True, help="ラベリングツールでエクスポートした YOLO ラベルのフォルダ")
-    imp.add_argument("--classes", type=_name_list, required=True)
-    imp.add_argument("--output", type=Path, required=True)
+    for name, help_text, labels_help in [
+        ("import-yolo", "YOLO 形式のラベルを正解アノテーションの JSON にする", "YOLO 形式でエクスポートしたラベルのフォルダ"),
+        ("import-labelme", "labelme 形式（X-AnyLabeling の保存形式）のラベルを正解アノテーションの JSON にする", "画像の隣に保存された .json のフォルダ（通常は images/）"),
+    ]:
+        imp = commands.add_parser(name, help=help_text)
+        imp.add_argument("--video", type=Path, required=True)
+        imp.add_argument("--labeling-dir", type=Path, required=True, help="prepare-labeling の出力先（manifest.json がある）")
+        imp.add_argument("--labels", type=Path, required=True, help=labels_help)
+        imp.add_argument("--classes", type=_name_list, required=True)
+        imp.add_argument("--output", type=Path, required=True)
     return parser
 
 
@@ -126,8 +130,9 @@ def _prepare(args: argparse.Namespace) -> int:
 
 
 def _import(args: argparse.Namespace) -> int:
+    importer = import_labelme if args.command == "import-labelme" else import_yolo
     try:
-        annotations = import_yolo(
+        annotations = importer(
             video=args.video, labeling_dir=args.labeling_dir, labels_dir=args.labels, classes=args.classes
         )
     except ValueError as error:
@@ -144,7 +149,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = _parser().parse_args(argv)
     if args.command == "prepare-labeling":
         return _prepare(args)
-    if args.command == "import-yolo":
+    if args.command in ("import-yolo", "import-labelme"):
         return _import(args)
     if args.command == "infer":
         return _infer(args)

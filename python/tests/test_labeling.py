@@ -96,3 +96,46 @@ def test_cli_prepare_and_import(tiny_video: Path, tmp_path: Path) -> None:
         "--labels", str(labels), "--classes", "cap", "--output", str(ann),
     ]) == 0
     assert [f["frame_index"] for f in json.loads(ann.read_text())["frames"]] == [1, 2]
+
+
+def test_import_labelme_reads_rectangles_of_selected_classes(tiny_video: Path, tmp_path: Path) -> None:
+    from detection_regression_infer.labeling import import_labelme
+
+    out = tmp_path / "labeling"
+    prepare_labeling(video=tiny_video, results=[_result(tiny_video, {})], frame_indexes=[1, 2], classes={"cap"}, output=out)
+    shapes = [
+        {"label": "cap", "shape_type": "rectangle", "points": [[32, 24], [16, 12], [16, 24], [32, 12]]},
+        {"label": "person", "shape_type": "rectangle", "points": [[0, 0], [10, 10]]},
+        {"label": "cap", "shape_type": "point", "points": [[5, 5]]},
+    ]
+    (out / "images" / "tiny_000001.json").write_text(json.dumps({"shapes": shapes, "imageWidth": 64, "imageHeight": 48}))
+
+    annotations = import_labelme(video=tiny_video, labeling_dir=out, labels_dir=out / "images", classes=["cap"])
+
+    Draft202012Validator(json.loads(ANNOTATIONS_SCHEMA.read_text())).validate(annotations)
+    assert annotations["frames"] == [
+        {"frame_index": 1, "objects": [{"class_name": "cap", "bbox": [16.0, 12.0, 32.0, 24.0]}]},
+        {"frame_index": 2, "objects": []},
+    ]
+
+
+def test_import_labelme_rejects_size_mismatch(tiny_video: Path, tmp_path: Path) -> None:
+    from detection_regression_infer.labeling import import_labelme
+
+    out = tmp_path / "labeling"
+    prepare_labeling(video=tiny_video, results=[_result(tiny_video, {})], frame_indexes=[1], classes={"cap"}, output=out)
+    (out / "images" / "tiny_000001.json").write_text(json.dumps({"shapes": [], "imageWidth": 128, "imageHeight": 48}))
+    with pytest.raises(ValueError, match="128"):
+        import_labelme(video=tiny_video, labeling_dir=out, labels_dir=out / "images", classes=["cap"])
+
+
+def test_cli_import_labelme(tiny_video: Path, tmp_path: Path) -> None:
+    out = tmp_path / "labeling"
+    prepare_labeling(video=tiny_video, results=[_result(tiny_video, {})], frame_indexes=[1], classes={"cap"}, output=out)
+    ann = tmp_path / "ann.json"
+    code = cli.main([
+        "import-labelme", "--video", str(tiny_video), "--labeling-dir", str(out),
+        "--labels", str(out / "images"), "--classes", "cap", "--output", str(ann),
+    ])
+    assert code == 0
+    assert json.loads(ann.read_text())["frames"] == [{"frame_index": 1, "objects": []}]

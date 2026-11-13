@@ -107,6 +107,8 @@ uv run --project python python examples/bus/make_sample.py \
      --labels annotations/labeling/test/labels --classes bottle --output annotations/test.json
    ```
 
+X-AnyLabeling が画像の隣に保存した `.json`（labelme 形式）をそのまま使うときは、手順4のエクスポートを省き、`import-yolo` の代わりに `import-labelme --labels annotations/labeling/test/images` を使います。
+
 `prepare-labeling` で書き出したフレームは、すべて確認済みとして扱います。ラベルのファイルが無いフレームは「物体が写っていない」という正解になります。
 
 ## JSON の形式
