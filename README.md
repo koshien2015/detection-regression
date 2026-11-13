@@ -1,16 +1,16 @@
 # detection-regression
 
-物体検出モデルを追加学習する前と後で、同じ動画に対する検出結果をフレーム単位で比べるツールです。どのフレームのどの検出が出現・消失・変化したかを JSON と静的な HTML レポートに残します。正解の BBox を付けたフレームでは、学習後に検出できなくなった物体（回帰）を判定します。
+物体検出モデルを追加学習する前と後で、同じ動画に対する検出結果をフレーム単位で比べるツールです。どのフレームのどの検出が出現・消失・変化したかを JSON と静的な HTML レポートに残します。正解の BBox を付けたフレームでは、学習後に検出できなくなった物体（デグレ。リグレッションとも呼びます）を判定します。
 
-全体の mAP が上がっていても、以前は検出できていた物体を見逃すようになることがあります。ソフトウェアの回帰テストと同じように、その変化を再現できる形で記録するのが目的です。
+全体の mAP が上がっていても、以前は検出できていた物体を見逃すようになることがあります。ソフトウェアのリグレッションテストと同じように、その変化を再現できる形で記録するのが目的です。
 
 ## 必要なもの
 
 - Python 3.11 以上と [uv](https://docs.astral.sh/uv/)（推論とフレーム画像の書き出し）
-- Node.js 22 以上と pnpm（比較・回帰判定・レポート）
+- Node.js 22 以上と pnpm（比較・デグレ判定・レポート）
 - 比べる2つの YOLO モデル（Ultralytics の `.pt`）と、比較に使う動画
 
-比較と回帰判定のテストは、YOLO のモデルも Python の環境もなしで実行できます。
+比較とデグレ判定のテストは、YOLO のモデルも Python の環境もなしで実行できます。
 
 ## インストール
 
@@ -49,7 +49,7 @@ pnpm --dir ts -s cli compare \
 
 許容幅を変えるときは `--config examples/sample_config.json` のように設定ファイルを渡します。項目は「差分の判定」の表を参照してください。
 
-### 3. 正解を付けたフレームで回帰を判定する（任意）
+### 3. 正解を付けたフレームでデグレを判定する（任意）
 
 ```bash
 pnpm --dir ts -s cli evaluate \
@@ -74,7 +74,7 @@ pnpm --dir ts -s cli report \
 
 ### サンプルで試す
 
-手元に動画が無い場合は、ultralytics に同梱の `bus.jpg` から作る3秒の疑似動画で、推論から回帰判定まで試せます。`examples/bus/make_sample.py` は、画像をゆっくり拡大・移動させた動画と、元画像の正解（`examples/bus/ground_truth.json`）を各フレームに写した正解アノテーションを書き出します。
+手元に動画が無い場合は、ultralytics に同梱の `bus.jpg` から作る3秒の疑似動画で、推論からデグレ判定まで試せます。`examples/bus/make_sample.py` は、画像をゆっくり拡大・移動させた動画と、元画像の正解（`examples/bus/ground_truth.json`）を各フレームに写した正解アノテーションを書き出します。
 
 ```bash
 uv run --project python python examples/bus/make_sample.py \
@@ -118,7 +118,7 @@ X-AnyLabeling が画像の隣に保存した `.json`（labelme 形式）をそ�
 | 推論結果（before.json・after.json） | `infer` | `schema/inference-result.schema.json` |
 | 正解アノテーション | 手で書く | `schema/annotations.schema.json` |
 | 差分（diff.json） | `compare` | `ts/src/compare.ts` の `Diff` 型 |
-| 回帰判定（evaluation.json） | `evaluate` | `ts/src/evaluation.ts` の `Evaluation` 型 |
+| デグレ判定（evaluation.json） | `evaluate` | `ts/src/evaluation.ts` の `Evaluation` 型 |
 
 推論結果と正解アノテーションの共通の決まりは次のとおりです。
 
@@ -167,7 +167,7 @@ X-AnyLabeling が画像の隣に保存した `.json`（labelme 形式）をそ�
 
 差分があること自体は、改善とも悪化とも判定しません。
 
-## 回帰判定
+## デグレ判定
 
 正解を付けたフレームだけを評価します。confidence の高い検出から順に、同じクラスで IoU が 0.5（`--iou-threshold` で変更可）以上の正解に一対一で割り当て、TP・FP・FN を数えます。
 
@@ -175,10 +175,10 @@ X-AnyLabeling が画像の隣に保存した `.json`（labelme 形式）をそ�
 |---|---|---|
 | maintained（維持） | PASS | PASS |
 | improved（改善） | FAIL | PASS |
-| regressed（回帰） | PASS | FAIL |
+| regressed（デグレ） | PASS | FAIL |
 | unresolved（未改善） | FAIL | FAIL |
 
-PASS / FAIL は正解の物体ごとに決めます。回帰と改善のうち、判定を分けた IoU が閾値から 0.05 以内のものには「境界」の印を付けます。小さい物体では、正解の枠の付け方や閾値だけで判定が入れ替わるためです。小さい物体の評価では、`--iou-threshold 0.3` も試してください。正解の無い検出（FP）は遷移の表に入れず、モデルごとの件数と precision に反映します。
+PASS / FAIL は正解の物体ごとに決めます。デグレと改善のうち、判定を分けた IoU が閾値から 0.05 以内のものには「境界」の印を付けます。小さい物体では、正解の枠の付け方や閾値だけで判定が入れ替わるためです。小さい物体の評価では、`--iou-threshold 0.3` も試してください。正解の無い検出（FP）は遷移の表に入れず、モデルごとの件数と precision に反映します。
 
 ## 比較を止める条件
 
@@ -201,7 +201,7 @@ PASS / FAIL は正解の物体ごとに決めます。回帰と改善のうち�
 ## 開発
 
 ```bash
-pnpm --dir ts test            # 比較・回帰判定・レポートのテスト（vitest）
+pnpm --dir ts test            # 比較・デグレ判定・レポートのテスト（vitest）
 pnpm --dir ts typecheck       # 型チェック
 pnpm --dir ts gen:schema      # ts/src/schema.ts を変えたら JSON Schema を作り直す
 uv run --project python pytest python/tests   # 推論・フレーム書き出しのテスト

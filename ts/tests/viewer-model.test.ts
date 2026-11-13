@@ -19,7 +19,7 @@ const report = (): ReportData => {
 }
 
 describe('sortFrames', () => {
-  it('impact は回帰の多い順、次に変化の多い順、最後に番号順', () => {
+  it('impact はデグレの多い順、次に変化の多い順、最後に番号順', () => {
     expect(sortFrames(report().frames, 'impact').map((f) => f.frame_index)).toEqual([1, 2, 3, 0])
   })
 
@@ -36,7 +36,7 @@ describe('sortFrames', () => {
 })
 
 describe('filterFrames', () => {
-  it('changed は差分のあるフレームだけ、regressed は回帰のあるフレームだけ', () => {
+  it('changed は差分のあるフレームだけ、regressed はデグレのあるフレームだけ', () => {
     const frames = report().frames
     expect(filterFrames(frames, 'all')).toHaveLength(4)
     expect(filterFrames(frames, 'changed').map((f) => f.frame_index)).toEqual([1, 2, 3])
@@ -79,7 +79,7 @@ describe('formatPercent', () => {
 })
 
 describe('defaultFilter', () => {
-  it('回帰判定があれば all（差分の無いフレームの回帰も見落とさないため）、無ければ changed', () => {
+  it('デグレ判定があれば all（差分の無いフレームのデグレも見落とさないため）、無ければ changed', () => {
     expect(defaultFilter(report())).toBe('all')
     expect(defaultFilter({ ...report(), evaluation_summary: null })).toBe('changed')
   })

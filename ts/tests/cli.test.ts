@@ -105,7 +105,7 @@ describe('compare コマンド', () => {
 })
 
 describe('evaluate コマンド', () => {
-  it('手作業で設計した正解から、維持・回帰・改善を判定する', () => {
+  it('手作業で設計した正解から、維持・デグレ・改善を判定する', () => {
     const output = join(mkdtempSync(join(tmpdir(), 'dr-')), 'evaluation.json')
     const result = run([
       'evaluate', '--before', fixture('before.json'), '--after', fixture('after.json'),
@@ -120,7 +120,7 @@ describe('evaluate コマンド', () => {
       [3, 'improved'],
     ])
     expect(e.summary).toMatchObject({ annotated_frames: 3, unannotated_frames: 1, objects: 3 })
-    expect(result.out).toContain('回帰 1')
+    expect(result.out).toContain('デグレ 1')
   })
 
   it('--iou-threshold を判定に使う', () => {

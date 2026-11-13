@@ -116,10 +116,10 @@ const runEvaluate = (args: string[], io: CliIo): number => {
   const s = outcome.evaluation.summary
   io.stdout(
     `${v.output} に書き出した。正解のあるフレーム ${s.annotated_frames}・物体 ${s.objects}` +
-      `（維持 ${s.maintained}・改善 ${s.improved}・回帰 ${s.regressed}・未改善 ${s.unresolved}）\n`,
+      `（維持 ${s.maintained}・改善 ${s.improved}・デグレ ${s.regressed}・未改善 ${s.unresolved}）\n`,
   )
   io.stdout(
-    `うち IoU が閾値 ±${outcome.evaluation.options.borderline_margin} 以内で判定が分かれたもの: 回帰 ${s.regressed_borderline}・改善 ${s.improved_borderline}\n`,
+    `うち IoU が閾値 ±${outcome.evaluation.options.borderline_margin} 以内で判定が分かれたもの: デグレ ${s.regressed_borderline}・改善 ${s.improved_borderline}\n`,
   )
   outcome.evaluation.warnings.forEach((w) => io.stderr(`警告: ${w}\n`))
   return 0

@@ -51,7 +51,7 @@ export const Summary = ({ data }: { data: ReportData }) => {
       {e !== null && (
         <div className="stats">
           <Stat label={`正解のあるフレーム（未アノテーション ${e.unannotated_frames}）`} value={`${e.annotated_frames}・物体 ${e.objects}`} />
-          <Stat label={`回帰（うち境界 ${e.regressed_borderline}）`} value={e.regressed} tone="regressed" />
+          <Stat label={`デグレ（うち境界 ${e.regressed_borderline}）`} value={e.regressed} tone="regressed" />
           <Stat label={`改善（うち境界 ${e.improved_borderline}）`} value={e.improved} tone="improved" />
           <Stat label="維持" value={e.maintained} />
           <Stat label="未改善" value={e.unresolved} />

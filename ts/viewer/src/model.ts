@@ -14,7 +14,7 @@ export const sortFrames = (frames: readonly ReportFrame[], key: SortKey): Report
       : b.regressed_count - a.regressed_count || b.change_count - a.change_count || a.frame_index - b.frame_index,
   )
 
-// 回帰判定があるときは全件から始める。差分が無くても回帰しているフレーム（両方とも見逃し続けている等）を隠さないため
+// デグレ判定があるときは全件から始める。差分が無くてもデグレしているフレーム（両方とも見逃し続けている等）を隠さないため
 export const defaultFilter = (data: ReportData): FilterKey => (data.evaluation_summary === null ? 'changed' : 'all')
 
 export const filterFrames = (frames: readonly ReportFrame[], key: FilterKey): ReportFrame[] =>
@@ -71,6 +71,6 @@ export const STATUS_LABELS: Record<BoxStatus, string> = {
   disappeared: '消失',
   maintained: '維持',
   improved: '改善',
-  regressed: '回帰',
+  regressed: 'デグレ',
   unresolved: '未改善',
 }

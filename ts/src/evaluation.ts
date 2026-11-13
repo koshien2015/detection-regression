@@ -14,7 +14,7 @@ export const EVALUATION_SCHEMA_VERSION = '1.0'
 
 export type EvaluateOptions = {
   iou_threshold: number
-  // 回帰・改善のうち、PASS/FAIL を分けた IoU が閾値からこの幅以内のものを borderline にする
+  // デグレ・改善のうち、PASS/FAIL を分けた IoU が閾値からこの幅以内のものを borderline にする
   borderline_margin: number
   allow_inference_mismatch: boolean
 }
@@ -74,7 +74,7 @@ export type ObjectEvaluation = {
   before: ModelVerdict
   after: ModelVerdict
   transition: Transition
-  // 閾値ぎりぎりで PASS/FAIL が分かれた回帰・改善。正解の枠の付け方や IoU の閾値しだいで判定が変わりうる
+  // 閾値ぎりぎりで PASS/FAIL が分かれたデグレ・改善。正解の枠の付け方や IoU の閾値しだいで判定が変わりうる
   borderline: boolean
 }
 

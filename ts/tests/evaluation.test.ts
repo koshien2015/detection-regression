@@ -146,7 +146,7 @@ describe('evaluateResults: 閾値ぎりぎりの判定', () => {
     expect(e.summary).toMatchObject({ regressed: 1, regressed_borderline: 1 })
   })
 
-  it('閾値から離れた回帰は borderline にしない', () => {
+  it('閾値から離れたデグレは borderline にしない', () => {
     const e = evaluate([withIou(0.9)], [withIou(0.2)], gt100)
     expect(e.frames[0]?.objects[0]?.borderline).toBe(false)
     expect(e.summary).toMatchObject({ regressed: 1, regressed_borderline: 0 })
