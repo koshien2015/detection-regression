@@ -1,0 +1,13 @@
+{
+  "image": "ultralytics/assets/bus.jpg",
+  "width": 810,
+  "height": 1080,
+  "note": "yolo26x の検出を候補にし、目視で確認した正解。座標は元画像のピクセル",
+  "objects": [
+    { "class_name": "bus", "bbox": [0.0, 229.2, 807.9, 739.2] },
+    { "class_name": "person", "bbox": [49.8, 397.3, 247.7, 903.9] },
+    { "class_name": "person", "bbox": [223.4, 406.5, 344.4, 860.2] },
+    { "class_name": "person", "bbox": [668.5, 393.2, 809.7, 880.8] },
+    { "class_name": "person", "bbox": [0.1, 554.1, 78.6, 1062.6] }
+  ]
+}

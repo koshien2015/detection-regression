@@ -72,6 +72,17 @@ pnpm --dir ts -s cli report \
 
 `extract-frames` は、差分のあるフレームと正解を付けたフレームだけを PNG に書き出します。ほかのフレームも見たいときは `--frames 120,121` のように番号を足します。`results/report/index.html` をブラウザで開くと、レポートが表示されます。Web サーバーは要りません。
 
+### サンプルで試す
+
+手元に動画が無い場合は、ultralytics に同梱の `bus.jpg` から作る3秒の疑似動画で、推論から回帰判定まで試せます。`examples/bus/make_sample.py` は、画像をゆっくり拡大・移動させた動画と、元画像の正解（`examples/bus/ground_truth.json`）を各フレームに写した正解アノテーションを書き出します。
+
+```bash
+uv run --project python python examples/bus/make_sample.py \
+  --video samples/bus_pan.mp4 --annotations annotations/bus_pan.json
+```
+
+以降は「使い方」の 1〜4 で、`--video samples/bus_pan.mp4`・`--annotations annotations/bus_pan.json` を指定します。モデルには COCO で学習済みの `yolo26n.pt` と `yolo26s.pt` を使えます（初回の推論で自動的にダウンロードされます）。
+
 ## JSON の形式
 
 | ファイル | 作るコマンド | 形式 |
