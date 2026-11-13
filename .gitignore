@@ -9,3 +9,8 @@ results/
 __pycache__/
 .DS_Store
 viewer/dist/
+
+# 比較に使うモデル・動画・正解・結果は手元にだけ置く（公開リポジトリに入れない）
+models/
+samples/
+annotations/
