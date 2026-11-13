@@ -1,14 +1,22 @@
-import { readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { join, relative, sep } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
 import { z } from 'zod'
 import { compareJson } from './compare.js'
-import { evaluateJson } from './evaluation.js'
+import type { Diff } from './compare.js'
+import { evaluateJson, type Evaluation } from './evaluation.js'
+import { buildReportData, imagesFromFileNames, renderDataJs } from './report.js'
 
 export type CliIo = { stdout: (s: string) => void; stderr: (s: string) => void }
+export type CliOptions = { viewerHtmlPath?: string }
+
+const DEFAULT_VIEWER_HTML = fileURLToPath(new URL('../viewer/dist/index.html', import.meta.url))
 
 const USAGE = `使い方:
   detection-regression compare --before <before.json> --after <after.json> --output <diff.json> [--config <config.json>]
   detection-regression evaluate --before <before.json> --after <after.json> --annotations <annotations.json> --output <evaluation.json> [--iou-threshold 0.5]
+  detection-regression report --diff <diff.json> [--evaluation <evaluation.json>] [--frames <dir>] --output <dir>
 `
 
 const ConfigSchema = z
@@ -108,15 +116,40 @@ const runEvaluate = (args: string[], io: CliIo): number => {
   return 0
 }
 
-const COMMANDS: Record<string, (args: string[], io: CliIo) => number> = {
+const runReport = (args: string[], io: CliIo, options: CliOptions): number => {
+  const v = parseRequired(args, ['diff', 'output'], ['evaluation', 'frames'])
+  const viewerHtml = options.viewerHtmlPath ?? DEFAULT_VIEWER_HTML
+  if (!existsSync(viewerHtml)) {
+    throw new InputError(`ビューアの HTML が無い: ${viewerHtml}。先に ts/ で pnpm build:viewer を実行する`)
+  }
+  const framesDir = v.frames ?? join(v.output, 'frames')
+  const images = existsSync(framesDir) ? imagesFromFileNames(readdirSync(framesDir)) : {}
+  const outcome = buildReportData(
+    readJson(v.diff) as Diff,
+    v.evaluation === undefined ? null : (readJson(v.evaluation) as Evaluation),
+    images,
+    relative(v.output, framesDir).split(sep).join('/'),
+  )
+  if (!outcome.ok) throw new InputError(outcome.error)
+  mkdirSync(v.output, { recursive: true })
+  writeFileSync(join(v.output, 'index.html'), readFileSync(viewerHtml))
+  writeFileSync(join(v.output, 'data.js'), renderDataJs(outcome.data))
+  io.stdout(
+    `${join(v.output, 'index.html')} を書き出した。フレーム ${outcome.data.frames.length}（画像あり ${outcome.data.frames.filter((f) => f.image !== null).length}）\n`,
+  )
+  return 0
+}
+
+const COMMANDS: Record<string, (args: string[], io: CliIo, options: CliOptions) => number> = {
   compare: runCompare,
   evaluate: runEvaluate,
+  report: runReport,
 }
 
 const isParseArgsError = (error: unknown): error is TypeError =>
   error instanceof TypeError && 'code' in error && String(error.code).startsWith('ERR_PARSE_ARGS')
 
-export const runCli = (argv: string[], io: CliIo): number => {
+export const runCli = (argv: string[], io: CliIo, options: CliOptions = {}): number => {
   const [command, ...rest] = argv
   const handler = command === undefined ? undefined : COMMANDS[command]
   if (handler === undefined) {
@@ -124,7 +157,7 @@ export const runCli = (argv: string[], io: CliIo): number => {
     return 2
   }
   try {
-    return handler(rest, io)
+    return handler(rest, io, options)
   } catch (error) {
     if (error instanceof InputError) {
       io.stderr(`${error.message}\n`)
