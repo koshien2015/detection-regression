@@ -32,6 +32,11 @@ def _parser() -> argparse.ArgumentParser:
     extract.add_argument("--evaluation", type=Path, help="evaluate が書き出した evaluation.json（正解を付けたフレームも書き出す）")
     extract.add_argument("--frames", type=_frame_list, default=[], help="追加で書き出すフレーム番号（カンマ区切り）")
     extract.add_argument("--output", type=Path, required=True)
+    extract.add_argument(
+        "--motion-from",
+        type=Path,
+        help="指定した動画（推論に使った動画の元の動画）から、動いている成分だけの画像を作って書き出す。人物を判別しにくくする",
+    )
     return parser
 
 
@@ -80,7 +85,7 @@ def _extract(args: argparse.Namespace) -> int:
     evaluation = json.loads(args.evaluation.read_text()) if args.evaluation else None
     indexes = select_frames(diff=diff, evaluation=evaluation, explicit=args.frames)
     try:
-        written = extract_frames(args.video, indexes, args.output)
+        written = extract_frames(args.video, indexes, args.output, motion_from=args.motion_from)
     except ValueError as error:
         print(str(error), file=sys.stderr)
         return 1

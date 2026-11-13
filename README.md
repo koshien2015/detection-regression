@@ -70,7 +70,7 @@ pnpm --dir ts -s cli report \
   --diff results/diff.json --evaluation results/evaluation.json --output results/report
 ```
 
-`extract-frames` は、差分のあるフレームと正解を付けたフレームだけを PNG に書き出します。ほかのフレームも見たいときは `--frames 120,121` のように番号を足します。`results/report/index.html` をブラウザで開くと、レポートが表示されます。Web サーバーは要りません。
+`extract-frames` は、差分のあるフレームと正解を付けたフレームだけを PNG に書き出します。ほかのフレームも見たいときは `--frames 120,121` のように番号を足します。人が写った動画のレポートを公開するときは、`--motion-from <元の動画>` を付けると、前後のフレームとの差分（動いている成分）だけの画像を書き出します。輪郭だけが残り、人物を判別しにくくなります。枠の座標は変わりません。`results/report/index.html` をブラウザで開くと、レポートが表示されます。Web サーバーは要りません。
 
 ### サンプルで試す
 
