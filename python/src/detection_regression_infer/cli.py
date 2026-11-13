@@ -10,6 +10,9 @@ from .adapters.ultralytics import infer_video, load_model
 from .frames import extract_frames, select_frames
 from .video import sha256_file
 
+# ts/src/compare.ts の DIFF_SCHEMA_VERSION と合わせる
+SUPPORTED_DIFF_VERSION = "1.0"
+
 
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="detection-regression-infer")
@@ -63,6 +66,12 @@ def _extract(args: argparse.Namespace) -> int:
         print(f"動画が見つからない: {args.video}", file=sys.stderr)
         return 1
     diff = json.loads(args.diff.read_text())
+    if diff.get("diff_schema_version") != SUPPORTED_DIFF_VERSION:
+        print(
+            f"diff_schema_version が {diff.get('diff_schema_version')!r}。{SUPPORTED_DIFF_VERSION} のみ扱う",
+            file=sys.stderr,
+        )
+        return 1
     expected = diff["inputs"]["source"]["sha256"]
     actual = sha256_file(args.video)
     if actual != expected:

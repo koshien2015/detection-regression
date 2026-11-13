@@ -173,3 +173,15 @@ describe('compareJson: 読み込みから比較まで', () => {
     expect(compareJson(makeResult(), makeResult()).ok).toBe(true)
   })
 })
+
+describe('diff.json の契約（Python の extract-frames が読む項目）', () => {
+  it('diff_schema_version・inputs.source.sha256・frames[].frame_index・frames[].has_changes を持つ', () => {
+    const diff = diffOf(makeResult(), makeResult())
+    expect(diff.diff_schema_version).toBe('1.0')
+    expect(diff.inputs.source.sha256).toMatch(/^[0-9a-f]{64}$/)
+    diff.frames.forEach((f) => {
+      expect(typeof f.frame_index).toBe('number')
+      expect(typeof f.has_changes).toBe('boolean')
+    })
+  })
+})

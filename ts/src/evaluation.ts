@@ -1,3 +1,4 @@
+import { inferenceDifferences } from './compare.js'
 import { compareDetections, compareLabeled, iou } from './matching.js'
 import {
   parseAnnotations,
@@ -11,8 +12,10 @@ import {
 
 export const EVALUATION_SCHEMA_VERSION = '1.0'
 
-export type EvaluateOptions = { iou_threshold: number }
-export const DEFAULT_EVALUATE_OPTIONS: EvaluateOptions = { iou_threshold: 0.5 }
+export type EvaluateOptions = { iou_threshold: number; allow_inference_mismatch: boolean }
+export const DEFAULT_EVALUATE_OPTIONS: EvaluateOptions = { iou_threshold: 0.5, allow_inference_mismatch: false }
+
+type ModelInput = { model_id: string; inference: InferenceResult['inference'] }
 
 export type GroundTruthMatch = {
   groundTruth: AnnotatedObject[] // 内容の並び順にそろえた正解
@@ -74,7 +77,8 @@ export type ModelScore = { tp: number; fp: number; fn: number; precision: number
 export type Evaluation = {
   evaluation_schema_version: string
   options: EvaluateOptions
-  inputs: { source: InferenceResult['source']; before: { model_id: string }; after: { model_id: string } }
+  inputs: { source: InferenceResult['source']; before: ModelInput; after: ModelInput }
+  warnings: string[]
   summary: {
     annotated_frames: number
     unannotated_frames: number
@@ -86,6 +90,7 @@ export type Evaluation = {
 export type EvaluateError =
   | ParseError
   | { kind: 'source_mismatch'; message: string }
+  | { kind: 'inference_mismatch'; message: string }
   | { kind: 'frame_set_mismatch'; message: string; details: { missing_in_results: number[] } }
 
 export type EvaluateOutcome = { ok: true; evaluation: Evaluation } | { ok: false; error: EvaluateError }
@@ -152,6 +157,16 @@ export const evaluateResults = (
   const o: EvaluateOptions = { ...DEFAULT_EVALUATE_OPTIONS, ...options }
   const sourceError = checkSources(before, after, annotations)
   if (sourceError !== null) return { ok: false, error: sourceError }
+  const inferenceDiffs = inferenceDifferences(before, after)
+  if (inferenceDiffs.length > 0 && !o.allow_inference_mismatch) {
+    return {
+      ok: false,
+      error: {
+        kind: 'inference_mismatch',
+        message: `推論条件が一致しない（before / after）: ${inferenceDiffs.join(', ')}。判定するなら allow_inference_mismatch を指定する`,
+      },
+    }
+  }
 
   const beforeByIndex = new Map(before.frames.map((f) => [f.frame_index, f.detections]))
   const afterByIndex = new Map(after.frames.map((f) => [f.frame_index, f.detections]))
@@ -183,9 +198,10 @@ export const evaluateResults = (
       options: o,
       inputs: {
         source: before.source,
-        before: { model_id: before.inference.model_id },
-        after: { model_id: after.inference.model_id },
+        before: { model_id: before.inference.model_id, inference: before.inference },
+        after: { model_id: after.inference.model_id, inference: after.inference },
       },
+      warnings: inferenceDiffs.map((d) => `推論条件が違う: ${d}`),
       summary: {
         annotated_frames: frames.length,
         unannotated_frames: before.frames.length - frames.length,

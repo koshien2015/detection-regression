@@ -141,6 +141,18 @@ describe('evaluate コマンド', () => {
     expect(result.code).toBe(2)
   })
 
+  it('--allow-inference-mismatch を付ければ推論条件の違う結果も判定する', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'dr-'))
+    const raw = JSON.parse(readFileSync(fixture('after.json'), 'utf8')) as { inference: object }
+    const other = join(dir, 'after.json')
+    writeFileSync(other, JSON.stringify({ ...raw, inference: { ...raw.inference, confidence_threshold: 0.1 } }))
+    const base = ['evaluate', '--before', fixture('before.json'), '--after', other, '--annotations', fixture('annotations.json'), '--output', join(dir, 'e.json')]
+    expect(run(base).code).toBe(1)
+    const allowed = run([...base, '--allow-inference-mismatch'])
+    expect(allowed.code).toBe(0)
+    expect(allowed.err).toContain('confidence_threshold')
+  })
+
   it('正解の動画が違えば終了コード1', () => {
     const dir = mkdtempSync(join(tmpdir(), 'dr-'))
     const raw = JSON.parse(readFileSync(fixture('annotations.json'), 'utf8')) as { source: object }

@@ -57,7 +57,7 @@ describe('buildReportData', () => {
 
   it('比較と判定で元動画やモデルが違えばエラー', () => {
     const e = evaluation()
-    const other = { ...e, inputs: { ...e.inputs, after: { model_id: 'other' } } }
+    const other = { ...e, inputs: { ...e.inputs, after: { ...e.inputs.after, model_id: 'other' } } }
     const r = buildReportData(diff(), other, {})
     expect(r.ok).toBe(false)
   })

@@ -152,6 +152,29 @@ describe('evaluateResults: 前提が崩れている場合', () => {
     if (!outcome.ok) expect(outcome.error.kind).toBe('frame_set_mismatch')
   })
 
+  it('推論条件が違えば既定ではエラー（閾値を下げただけで「改善」に見えるのを防ぐ）', () => {
+    const outcome = evaluateResults(
+      parseResult(makeResult()),
+      parseResult(makeResult({ inference: { confidence_threshold: 0.1 } })),
+      parseAnn(makeAnnotations()),
+    )
+    expect(outcome.ok).toBe(false)
+    if (!outcome.ok) expect(outcome.error.kind).toBe('inference_mismatch')
+  })
+
+  it('推論条件の違いを許可すれば判定し、両方の推論条件と警告を残す', () => {
+    const outcome = evaluateResults(
+      parseResult(makeResult()),
+      parseResult(makeResult({ inference: { confidence_threshold: 0.1 } })),
+      parseAnn(makeAnnotations()),
+      { allow_inference_mismatch: true },
+    )
+    expect(outcome.ok).toBe(true)
+    if (!outcome.ok) return
+    expect(outcome.evaluation.inputs.after.inference.confidence_threshold).toBe(0.1)
+    expect(outcome.evaluation.warnings.some((w) => w.includes('confidence_threshold'))).toBe(true)
+  })
+
   it('evaluateJson は読み込みエラーにどの入力かを付ける', () => {
     const outcome = evaluateJson(makeResult(), makeResult(), makeAnnotations({ schema_version: '9' }))
     expect(outcome.ok).toBe(false)

@@ -1,7 +1,7 @@
 // ビューアの表示用の純粋関数。React に依存させず、vitest で確かめる。
 import type { MatchedEntry } from '../../src/compare.js'
 import type { Transition } from '../../src/evaluation.js'
-import type { ReportFrame } from '../../src/report.js'
+import type { ReportData, ReportFrame } from '../../src/report.js'
 import type { BBox, Detection } from '../../src/schema.js'
 
 export type SortKey = 'impact' | 'index'
@@ -13,6 +13,9 @@ export const sortFrames = (frames: readonly ReportFrame[], key: SortKey): Report
       ? a.frame_index - b.frame_index
       : b.regressed_count - a.regressed_count || b.change_count - a.change_count || a.frame_index - b.frame_index,
   )
+
+// 回帰判定があるときは全件から始める。差分が無くても回帰しているフレーム（両方とも見逃し続けている等）を隠さないため
+export const defaultFilter = (data: ReportData): FilterKey => (data.evaluation_summary === null ? 'changed' : 'all')
 
 export const filterFrames = (frames: readonly ReportFrame[], key: FilterKey): ReportFrame[] =>
   frames.filter((f) => key === 'all' || (key === 'changed' ? f.diff.has_changes : f.regressed_count > 0))

@@ -3,7 +3,7 @@ import type { ReportData } from '../../src/report.js'
 import { FrameCanvas } from './FrameCanvas.js'
 import { FrameList } from './FrameList.js'
 import { FrameTables } from './FrameTables.js'
-import { filterFrames, sortFrames, type FilterKey, type Layer, type SortKey } from './model.js'
+import { defaultFilter, filterFrames, sortFrames, type FilterKey, type Layer, type SortKey } from './model.js'
 import { Summary } from './Summary.js'
 
 const LAYERS: { key: Layer; label: string }[] = [
@@ -14,7 +14,7 @@ const LAYERS: { key: Layer; label: string }[] = [
 
 export const App = ({ data }: { data: ReportData }) => {
   const [sort, setSort] = useState<SortKey>('impact')
-  const [filter, setFilter] = useState<FilterKey>('changed')
+  const [filter, setFilter] = useState<FilterKey>(() => defaultFilter(data))
   const [layers, setLayers] = useState<Record<Layer, boolean>>({ before: true, after: true, truth: true })
   const frames = useMemo(() => sortFrames(filterFrames(data.frames, filter), sort), [data.frames, filter, sort])
   const [selected, setSelected] = useState<number | null>(frames[0]?.frame_index ?? null)

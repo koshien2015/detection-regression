@@ -76,7 +76,7 @@ export const buildReportData = (
       report_schema_version: REPORT_SCHEMA_VERSION,
       inputs: diff.inputs,
       options: diff.options,
-      warnings: diff.warnings,
+      warnings: [...new Set([...diff.warnings, ...(evaluation?.warnings ?? [])])],
       summary: diff.summary,
       evaluation_options: evaluation?.options ?? null,
       evaluation_summary: evaluation?.summary ?? null,

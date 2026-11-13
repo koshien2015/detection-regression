@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest'
 import { compareJson } from '../src/compare.js'
 import { evaluateJson } from '../src/evaluation.js'
 import { buildReportData, type ReportData } from '../src/report.js'
-import { filterFrames, formatPercent, overlayBoxes, sortFrames } from '../viewer/src/model.js'
+import { defaultFilter, filterFrames, formatPercent, overlayBoxes, sortFrames } from '../viewer/src/model.js'
 
 const json = (name: string): unknown =>
   JSON.parse(readFileSync(fileURLToPath(new URL(`./fixtures/${name}`, import.meta.url)), 'utf8'))
@@ -75,5 +75,12 @@ describe('formatPercent', () => {
   it('null は「—」にする', () => {
     expect(formatPercent(null)).toBe('—')
     expect(formatPercent(0.5)).toBe('50.0%')
+  })
+})
+
+describe('defaultFilter', () => {
+  it('回帰判定があれば all（差分の無いフレームの回帰も見落とさないため）、無ければ changed', () => {
+    expect(defaultFilter(report())).toBe('all')
+    expect(defaultFilter({ ...report(), evaluation_summary: null })).toBe('changed')
   })
 })

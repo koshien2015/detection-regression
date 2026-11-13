@@ -23,7 +23,7 @@ def select_frames(
     explicit: Iterable[int] = (),
 ) -> list[int]:
     """差分のあるフレーム・正解を付けたフレーム・明示したフレームを合わせ、番号順に返す。"""
-    changed = [f["frame_index"] for f in (diff or {}).get("frames", []) if f.get("has_changes")]
+    changed = [f["frame_index"] for f in (diff or {}).get("frames", []) if f["has_changes"]]
     annotated = [f["frame_index"] for f in (evaluation or {}).get("frames", [])]
     return sorted({*changed, *annotated, *explicit})
 

@@ -10,7 +10,9 @@ from detection_regression_infer.video import sha256_file
 
 
 def _diff(video: Path, changed: list[int], total: int = 5) -> dict:
+    # ts/tests/compare.test.ts の「diff.json の契約」で保証している項目だけを使う
     return {
+        "diff_schema_version": "1.0",
         "inputs": {"source": {"sha256": sha256_file(video)}},
         "frames": [{"frame_index": i, "has_changes": i in changed} for i in range(total)],
     }
@@ -57,3 +59,14 @@ def test_cli_extract_frames_refuses_other_video(tiny_video: Path, tmp_path: Path
     code = cli.main(["extract-frames", "--video", str(tiny_video), "--diff", str(diff_path), "--output", str(tmp_path / "o")])
     assert code == 1
     assert "sha256" in capsys.readouterr().err
+
+
+def test_cli_extract_frames_refuses_unknown_diff_version(
+    tiny_video: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    diff = {**_diff(tiny_video, changed=[2]), "diff_schema_version": "2.0"}
+    diff_path = tmp_path / "diff.json"
+    diff_path.write_text(json.dumps(diff))
+    code = cli.main(["extract-frames", "--video", str(tiny_video), "--diff", str(diff_path), "--output", str(tmp_path / "o")])
+    assert code == 1
+    assert "diff_schema_version" in capsys.readouterr().err

@@ -159,6 +159,10 @@ const INFERENCE_KEYS = ['confidence_threshold', 'iou_threshold', 'image_size'] a
 const differingKeys = <T extends object, K extends keyof T>(a: T, b: T, keys: readonly K[]): string[] =>
   keys.filter((k) => a[k] !== b[k]).map((k) => `${String(k)}: ${String(a[k])} / ${String(b[k])}`)
 
+// 推論条件（confidence 閾値・IoU 閾値・入力サイズ）の違いを「項目: before / after」の形で返す。evaluate でも使う
+export const inferenceDifferences = (before: InferenceResult, after: InferenceResult): string[] =>
+  differingKeys(before.inference, after.inference, INFERENCE_KEYS)
+
 const classMapWarnings = (before: InferenceResult, after: InferenceResult): string[] =>
   Object.entries(before.inference.classes)
     .filter(([id, name]) => {
@@ -183,7 +187,7 @@ const checkComparable = (before: InferenceResult, after: InferenceResult, o: Com
   if (sourceDiffs.length > 0) {
     return { ok: false, error: { kind: 'source_mismatch', message: `元動画が一致しない（before / after）: ${sourceDiffs.join(', ')}` } }
   }
-  const inferenceDiffs = differingKeys(before.inference, after.inference, INFERENCE_KEYS)
+  const inferenceDiffs = inferenceDifferences(before, after)
   if (inferenceDiffs.length > 0 && !o.allow_inference_mismatch) {
     return {
       ok: false,

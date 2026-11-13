@@ -15,7 +15,7 @@ const DEFAULT_VIEWER_HTML = fileURLToPath(new URL('../viewer/dist/index.html', i
 
 const USAGE = `使い方:
   detection-regression compare --before <before.json> --after <after.json> --output <diff.json> [--config <config.json>]
-  detection-regression evaluate --before <before.json> --after <after.json> --annotations <annotations.json> --output <evaluation.json> [--iou-threshold 0.5]
+  detection-regression evaluate --before <before.json> --after <after.json> --annotations <annotations.json> --output <evaluation.json> [--iou-threshold 0.5] [--allow-inference-mismatch]
   detection-regression report --diff <diff.json> [--evaluation <evaluation.json>] [--frames <dir>] --output <dir>
 `
 
@@ -94,15 +94,20 @@ const runCompare = (args: string[], io: CliIo): number => {
   return 0
 }
 
+const ALLOW_FLAG = '--allow-inference-mismatch'
+
 const runEvaluate = (args: string[], io: CliIo): number => {
-  const v = parseRequired(args, ['before', 'after', 'annotations', 'output'], ['iou-threshold'])
-  const iouThreshold = ratio(v['iou-threshold'], 'iou-threshold')
-  const outcome = evaluateJson(
-    readJson(v.before),
-    readJson(v.after),
-    readJson(v.annotations),
-    iouThreshold === undefined ? {} : { iou_threshold: iouThreshold },
+  const allowMismatch = args.includes(ALLOW_FLAG)
+  const v = parseRequired(
+    args.filter((a) => a !== ALLOW_FLAG),
+    ['before', 'after', 'annotations', 'output'],
+    ['iou-threshold'],
   )
+  const iouThreshold = ratio(v['iou-threshold'], 'iou-threshold')
+  const outcome = evaluateJson(readJson(v.before), readJson(v.after), readJson(v.annotations), {
+    allow_inference_mismatch: allowMismatch,
+    ...(iouThreshold === undefined ? {} : { iou_threshold: iouThreshold }),
+  })
   if (!outcome.ok) {
     io.stderr(`判定できない（${outcome.error.kind}）: ${outcome.error.message}\n`)
     return 1
@@ -113,6 +118,7 @@ const runEvaluate = (args: string[], io: CliIo): number => {
     `${v.output} に書き出した。正解のあるフレーム ${s.annotated_frames}・物体 ${s.objects}` +
       `（維持 ${s.maintained}・改善 ${s.improved}・回帰 ${s.regressed}・未改善 ${s.unresolved}）\n`,
   )
+  outcome.evaluation.warnings.forEach((w) => io.stderr(`警告: ${w}\n`))
   return 0
 }
 
