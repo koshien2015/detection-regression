@@ -1,0 +1,10 @@
+node_modules/
+dist/
+coverage/
+results/
+*.pt
+*.mp4
+*.mov
+.venv/
+__pycache__/
+.DS_Store
