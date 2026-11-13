@@ -77,6 +77,7 @@ export type ModelScore = { tp: number; fp: number; fn: number; precision: number
 export type Evaluation = {
   evaluation_schema_version: string
   options: EvaluateOptions
+  evaluated_classes: string[] | null // null はすべてのクラスを評価した
   inputs: { source: InferenceResult['source']; before: ModelInput; after: ModelInput }
   warnings: string[]
   summary: {
@@ -185,8 +186,12 @@ export const evaluateResults = (
     }
   }
 
+  // 正解を付けていないクラスの検出を FP に数えないよう、評価するクラスだけに絞る
+  const evaluated = annotations.classes === undefined ? null : new Set(annotations.classes)
+  const detectionsAt = (byIndex: Map<number, Detection[]>, index: number) =>
+    (byIndex.get(index) ?? []).filter((d) => evaluated === null || evaluated.has(d.class_name))
   const frames = annotated.map((f) =>
-    evaluateFrame(f.frame_index, f.objects, beforeByIndex.get(f.frame_index) ?? [], afterByIndex.get(f.frame_index) ?? [], o),
+    evaluateFrame(f.frame_index, f.objects, detectionsAt(beforeByIndex, f.frame_index), detectionsAt(afterByIndex, f.frame_index), o),
   )
   const objects = frames.flatMap((f) => f.objects)
   const countOf = (t: Transition) => objects.filter((x) => x.transition === t).length
@@ -196,6 +201,7 @@ export const evaluateResults = (
     evaluation: {
       evaluation_schema_version: EVALUATION_SCHEMA_VERSION,
       options: o,
+      evaluated_classes: annotations.classes === undefined ? null : [...annotations.classes].sort(),
       inputs: {
         source: before.source,
         before: { model_id: before.inference.model_id, inference: before.inference },

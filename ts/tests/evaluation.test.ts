@@ -131,6 +131,31 @@ describe('evaluateResults: before/after の遷移', () => {
   })
 })
 
+describe('evaluateResults: 評価するクラスの指定', () => {
+  const person = det([600, 300, 640, 420], 0.9, 'person', 0)
+
+  it('classes を指定すると、それ以外のクラスの検出は FP に数えない', () => {
+    const ann = makeAnnotations({
+      frames: [{ frame_index: 0, objects: [{ class_name: 'bottle', bbox: BOTTLE }] }],
+    })
+    const withClasses = { ...ann, classes: ['bottle'] }
+    const e = evaluate([HIT, person], [HIT, person], withClasses)
+    expect(e.summary.before).toMatchObject({ tp: 1, fp: 0 })
+    expect(e.evaluated_classes).toEqual(['bottle'])
+  })
+
+  it('classes を指定しなければ、すべてのクラスを評価する', () => {
+    const e = evaluate([HIT, person], [HIT, person])
+    expect(e.summary.before).toMatchObject({ tp: 1, fp: 1 })
+    expect(e.evaluated_classes).toBeNull()
+  })
+
+  it('classes に無いクラスの正解が書かれていればエラー', () => {
+    const r = parseAnnotations({ ...oneBottle, classes: ['person'] })
+    expect(r.ok).toBe(false)
+  })
+})
+
 describe('evaluateResults: 前提が崩れている場合', () => {
   it('正解アノテーションの動画が推論結果と違えばエラー', () => {
     const outcome = evaluateResults(

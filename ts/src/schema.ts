@@ -138,13 +138,26 @@ export const AnnotationsSchema = z
       width: z.int().positive(),
       height: z.int().positive(),
     }),
+    classes: z
+      .array(z.string().min(1))
+      .min(1)
+      .optional()
+      .describe('正解を付けたクラス。指定すると、ほかのクラスの検出は評価しない。省略時はすべてのクラスを評価する'),
     frames: z.array(AnnotatedFrameSchema).describe('ここに無いフレームは未アノテーションとして評価から除く'),
   })
   .superRefine((doc, ctx) => {
     const objIssues = doc.frames.flatMap((f, i) =>
       f.objects.flatMap((o, j) => bboxIssues(o.bbox, doc.source, ['frames', i, 'objects', j, 'bbox'])),
     )
-    const all = [...duplicateIndexIssues(doc.frames, 'frames'), ...objIssues]
+    const allowed = doc.classes === undefined ? null : new Set(doc.classes)
+    const classIssues = doc.frames.flatMap((f, i) =>
+      f.objects.flatMap((o, j): Issue[] =>
+        allowed === null || allowed.has(o.class_name)
+          ? []
+          : [{ path: ['frames', i, 'objects', j, 'class_name'], message: `${o.class_name} が classes に無い` }],
+      ),
+    )
+    const all = [...duplicateIndexIssues(doc.frames, 'frames'), ...objIssues, ...classIssues]
     all.forEach((issue) => ctx.addIssue({ code: 'custom', ...issue }))
   })
 

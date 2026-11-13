@@ -36,6 +36,15 @@
       ],
       "additionalProperties": false
     },
+    "classes": {
+      "description": "正解を付けたクラス。指定すると、ほかのクラスの検出は評価しない。省略時はすべてのクラスを評価する",
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
     "frames": {
       "type": "array",
       "items": {

@@ -99,12 +99,13 @@ uv run --project python python examples/bus/make_sample.py \
 - `source.sha256` は動画ファイルの SHA-256 です。別の動画の結果を比べないための識別に使います。
 - `source.path` にはファイル名か相対パスを書きます。絶対パスは受け付けません。
 
-正解アノテーションの例です。`objects` が空のフレームは「何も写っていないのが正解」として評価し、`frames` に載せていないフレームは評価から除きます。
+正解アノテーションの例です。`objects` が空のフレームは「何も写っていないのが正解」として評価し、`frames` に載せていないフレームは評価から除きます。一部のクラスにだけ正解を付けた場合は、`classes` にそのクラスを書きます。ほかのクラスの検出は FP に数えません。
 
 ```json
 {
   "schema_version": "1.0",
   "source": { "path": "test.mp4", "sha256": "<動画の sha256>", "width": 1280, "height": 720 },
+  "classes": ["bottle"],
   "frames": [
     { "frame_index": 100, "objects": [{ "class_name": "bottle", "bbox": [120, 80, 200, 340] }] },
     { "frame_index": 101, "objects": [] }
