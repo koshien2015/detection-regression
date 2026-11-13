@@ -8,6 +8,7 @@ from pathlib import Path
 
 from .adapters.ultralytics import infer_video, load_model
 from .frames import extract_frames, select_frames
+from .labeling import import_yolo, prepare_labeling
 from .video import sha256_file
 
 # ts/src/compare.ts の DIFF_SCHEMA_VERSION と合わせる
@@ -37,7 +38,25 @@ def _parser() -> argparse.ArgumentParser:
         type=Path,
         help="指定した動画（推論に使った動画の元の動画）から、動いている成分だけの画像を作って書き出す。人物を判別しにくくする",
     )
+
+    prep = commands.add_parser("prepare-labeling", help="正解を付けるフレームの画像と、推論結果からの下書きを書き出す")
+    prep.add_argument("--video", type=Path, required=True)
+    prep.add_argument("--result", type=Path, action="append", required=True, help="下書きに使う推論結果（複数指定可）")
+    prep.add_argument("--frames", type=_frame_list, required=True, help="正解を付けるフレーム番号（カンマ区切り）")
+    prep.add_argument("--classes", type=_name_list, required=True, help="正解を付けるクラス（カンマ区切り）")
+    prep.add_argument("--output", type=Path, required=True)
+
+    imp = commands.add_parser("import-yolo", help="YOLO 形式のラベルを正解アノテーションの JSON にする")
+    imp.add_argument("--video", type=Path, required=True)
+    imp.add_argument("--labeling-dir", type=Path, required=True, help="prepare-labeling の出力先（manifest.json がある）")
+    imp.add_argument("--labels", type=Path, required=True, help="ラベリングツールでエクスポートした YOLO ラベルのフォルダ")
+    imp.add_argument("--classes", type=_name_list, required=True)
+    imp.add_argument("--output", type=Path, required=True)
     return parser
+
+
+def _name_list(value: str) -> list[str]:
+    return [v.strip() for v in value.split(",") if v.strip()]
 
 
 def _frame_list(value: str) -> list[int]:
@@ -93,8 +112,40 @@ def _extract(args: argparse.Namespace) -> int:
     return 0
 
 
+def _prepare(args: argparse.Namespace) -> int:
+    results = [json.loads(p.read_text()) for p in args.result]
+    try:
+        prepare_labeling(
+            video=args.video, results=results, frame_indexes=args.frames, classes=set(args.classes), output=args.output
+        )
+    except ValueError as error:
+        print(str(error), file=sys.stderr)
+        return 1
+    print(f"{args.output} に {len(set(args.frames))} フレーム分の画像と下書きを書き出した")
+    return 0
+
+
+def _import(args: argparse.Namespace) -> int:
+    try:
+        annotations = import_yolo(
+            video=args.video, labeling_dir=args.labeling_dir, labels_dir=args.labels, classes=args.classes
+        )
+    except ValueError as error:
+        print(str(error), file=sys.stderr)
+        return 1
+    args.output.parent.mkdir(parents=True, exist_ok=True)
+    args.output.write_text(json.dumps(annotations, ensure_ascii=False, indent=2) + "\n")
+    objects = sum(len(f["objects"]) for f in annotations["frames"])
+    print(f"{args.output} に書き出した。{len(annotations['frames'])} フレーム・物体 {objects} 個")
+    return 0
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     args = _parser().parse_args(argv)
+    if args.command == "prepare-labeling":
+        return _prepare(args)
+    if args.command == "import-yolo":
+        return _import(args)
     if args.command == "infer":
         return _infer(args)
     if args.command == "extract-frames":
