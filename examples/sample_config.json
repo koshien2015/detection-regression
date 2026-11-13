@@ -1,0 +1,8 @@
+{
+  "match_iou_threshold": 0.5,
+  "confidence_tolerance": 0.05,
+  "iou_tolerance": 0.95,
+  "center_shift_tolerance_px": 4,
+  "size_change_tolerance_ratio": 0.05,
+  "allow_inference_mismatch": false
+}

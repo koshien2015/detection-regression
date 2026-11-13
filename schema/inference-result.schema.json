@@ -1,0 +1,177 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "source": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "pattern": "^(?!\\/|~|[A-Za-z]:[\\\\/]|\\\\\\\\).+$"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "fps": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "width": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        },
+        "height": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        },
+        "frame_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "path",
+        "sha256",
+        "fps",
+        "width",
+        "height",
+        "frame_count"
+      ],
+      "additionalProperties": false
+    },
+    "inference": {
+      "type": "object",
+      "properties": {
+        "model_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "confidence_threshold": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "iou_threshold": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "image_size": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        },
+        "classes": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "pattern": "^\\d+$"
+          },
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "class_id（文字列）から class_name への対応。モデルごとに異なりうる"
+        }
+      },
+      "required": [
+        "model_id",
+        "confidence_threshold",
+        "iou_threshold",
+        "image_size",
+        "classes"
+      ],
+      "additionalProperties": false
+    },
+    "frames": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "frame_index": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991,
+            "description": "先頭から順に読み込んだときの0始まりの番号"
+          },
+          "timestamp_ms": {
+            "type": "number",
+            "minimum": 0
+          },
+          "detections": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "class_id": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "class_name": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "confidence": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "bbox": {
+                  "type": "array",
+                  "prefixItems": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "number"
+                    }
+                  ],
+                  "items": false,
+                  "minItems": 4,
+                  "maxItems": 4,
+                  "description": "[x1, y1, x2, y2]。元動画の解像度でのピクセル座標"
+                }
+              },
+              "required": [
+                "class_id",
+                "class_name",
+                "confidence",
+                "bbox"
+              ],
+              "additionalProperties": false
+            },
+            "description": "検出が無いフレームも空配列で必ず記録する"
+          }
+        },
+        "required": [
+          "frame_index",
+          "timestamp_ms",
+          "detections"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "schema_version",
+    "source",
+    "inference",
+    "frames"
+  ],
+  "additionalProperties": false
+}

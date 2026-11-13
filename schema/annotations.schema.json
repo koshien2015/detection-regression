@@ -1,0 +1,104 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "source": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "pattern": "^(?!\\/|~|[A-Za-z]:[\\\\/]|\\\\\\\\).+$"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "width": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        },
+        "height": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "path",
+        "sha256",
+        "width",
+        "height"
+      ],
+      "additionalProperties": false
+    },
+    "frames": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "frame_index": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "objects": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "class_name": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "bbox": {
+                  "type": "array",
+                  "prefixItems": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "number"
+                    }
+                  ],
+                  "items": false,
+                  "minItems": 4,
+                  "maxItems": 4,
+                  "description": "[x1, y1, x2, y2]。元動画の解像度でのピクセル座標"
+                }
+              },
+              "required": [
+                "class_name",
+                "bbox"
+              ],
+              "additionalProperties": false
+            },
+            "description": "空配列は「このフレームには何も写っていないのが正解」を意味する"
+          }
+        },
+        "required": [
+          "frame_index",
+          "objects"
+        ],
+        "additionalProperties": false
+      },
+      "description": "ここに無いフレームは未アノテーションとして評価から除く"
+    }
+  },
+  "required": [
+    "schema_version",
+    "source",
+    "frames"
+  ],
+  "additionalProperties": false
+}

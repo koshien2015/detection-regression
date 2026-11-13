@@ -1,0 +1,17 @@
+{
+  "schema_version": "1.0",
+  "source": { "path": "sample.mp4", "sha256": "0000000000000000000000000000000000000000000000000000000000000001", "fps": 30, "width": 1280, "height": 720, "frame_count": 4 },
+  "inference": { "model_id": "model-v2", "confidence_threshold": 0.25, "iou_threshold": 0.7, "image_size": 640, "classes": { "0": "person", "39": "bottle" } },
+  "frames": [
+    { "frame_index": 0, "timestamp_ms": 0, "detections": [
+      { "class_id": 39, "class_name": "bottle", "confidence": 0.93, "bbox": [120, 80, 200, 340] }
+    ] },
+    { "frame_index": 1, "timestamp_ms": 33.333, "detections": [] },
+    { "frame_index": 2, "timestamp_ms": 66.667, "detections": [
+      { "class_id": 0, "class_name": "person", "confidence": 0.81, "bbox": [320, 100, 520, 700] }
+    ] },
+    { "frame_index": 3, "timestamp_ms": 100, "detections": [
+      { "class_id": 39, "class_name": "bottle", "confidence": 0.55, "bbox": [900, 200, 950, 330] }
+    ] }
+  ]
+}
