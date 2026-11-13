@@ -83,6 +83,32 @@ uv run --project python python examples/bus/make_sample.py \
 
 以降は「使い方」の 1〜4 で、`--video samples/bus_pan.mp4`・`--annotations annotations/bus_pan.json` を指定します。モデルには COCO で学習済みの `yolo26n.pt` と `yolo26s.pt` を使えます（初回の推論で自動的にダウンロードされます）。
 
+### 正解をラベリングツールで付ける
+
+正解アノテーションは、ラベリングツール（X-AnyLabeling など）で付けた YOLO 形式のラベルから作れます。
+
+1. 正解を付けるフレームの画像と下書きを書き出します。下書きには、渡した推論結果の検出を合わせたものが入ります。
+
+   ```bash
+   uv run --project python detection-regression-infer prepare-labeling \
+     --video samples/test.mp4 --result results/before.json --result results/after.json \
+     --frames 10,20,30 --classes bottle --output annotations/labeling/test
+   ```
+
+   `annotations/labeling/test/images/` に画像、`labels_draft/` に YOLO 形式の下書きと `classes.txt` ができます。
+2. ラベリングツールで `images/` を開き、`labels_draft/` の下書きを YOLO 形式でインポートします。設定ファイルには `labels_draft/classes.txt` を指定します。
+3. 下書きを確認して直します。写っているのに枠が無い物体には枠を足し、誤検出の枠は消します。書き出した**すべての**画像を確認してください。
+4. YOLO 形式で `annotations/labeling/test/labels/` にエクスポートします。
+5. 正解アノテーションに変換します。
+
+   ```bash
+   uv run --project python detection-regression-infer import-yolo \
+     --video samples/test.mp4 --labeling-dir annotations/labeling/test \
+     --labels annotations/labeling/test/labels --classes bottle --output annotations/test.json
+   ```
+
+`prepare-labeling` で書き出したフレームは、すべて確認済みとして扱います。ラベルのファイルが無いフレームは「物体が写っていない」という正解になります。
+
 ## JSON の形式
 
 | ファイル | 作るコマンド | 形式 |
